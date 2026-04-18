@@ -1,0 +1,212 @@
+'use client';
+
+import { X } from 'lucide-react';
+import { useState } from 'react';
+import { useUI, useCart } from '@/lib/store-context';
+import { translations } from '@/lib/translations';
+
+interface CheckoutModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
+  const { language } = useUI();
+  const { clearCart, cartTotal } = useCart();
+  const trans = translations[language];
+
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    postalCode: '',
+    paymentMethod: 'cash' as 'cash' | 'card',
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    alert(
+      language === 'ar'
+        ? `تم تأكيد طلبك بنجاح! سيتم التواصل معك قريباً.`
+        : `Order confirmed successfully! We'll contact you soon.`
+    );
+    clearCart();
+    setFormData({
+      fullName: '',
+      email: '',
+      phone: '',
+      address: '',
+      city: '',
+      postalCode: '',
+      paymentMethod: 'cash',
+    });
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+
+      {/* Modal */}
+      <div className="relative w-full max-w-2xl mx-4 rounded-lg shadow-lg max-h-96 overflow-y-auto bg-card">
+        {/* Header */}
+        <div className="sticky top-0 flex items-center justify-between p-4 border-b border-border">
+          <h2 className="text-lg font-light text-card-foreground">{trans.checkout}</h2>
+          <button onClick={onClose} className="p-1 hover:bg-muted rounded transition">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Personal Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-light mb-1 text-card-foreground">
+                  {trans.fullName}
+                </label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 rounded border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-light mb-1 text-card-foreground">
+                  {trans.email}
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 rounded border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+
+            {/* Contact Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-light mb-1 text-card-foreground">
+                  {trans.phoneNumber}
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 rounded border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-light mb-1 text-card-foreground">
+                  {trans.city}
+                </label>
+                <input
+                  type="text"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 rounded border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+
+            {/* Address */}
+            <div>
+              <label className="block text-sm font-light mb-1 text-card-foreground">
+                {trans.address}
+              </label>
+              <input
+                type="text"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                required
+                className="w-full px-3 py-2 rounded border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            {/* Postal Code */}
+            <div>
+              <label className="block text-sm font-light mb-1 text-card-foreground">
+                {trans.postalCode}
+              </label>
+              <input
+                type="text"
+                name="postalCode"
+                value={formData.postalCode}
+                onChange={handleChange}
+                required
+                className="w-full px-3 py-2 rounded border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            {/* Payment Method */}
+            <div>
+              <label className="block text-sm font-light mb-1 text-card-foreground">
+                {trans.paymentMethod}
+              </label>
+              <select
+                name="paymentMethod"
+                value={formData.paymentMethod}
+                onChange={handleChange}
+                className="w-full px-3 py-2 rounded border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="cash">{trans.cashOnDelivery}</option>
+                <option value="card">{trans.creditCard}</option>
+              </select>
+            </div>
+
+            {/* Order Summary */}
+            <div className="p-4 rounded bg-muted">
+              <h3 className="font-light mb-2 text-card-foreground">{trans.orderSummary}</h3>
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <div className="flex justify-between">
+                  <span>{trans.subtotal}:</span>
+                  <span>{cartTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>{trans.shipping}:</span>
+                  <span>{trans.free}</span>
+                </div>
+                <div className="flex justify-between font-light border-t border-border pt-2 text-foreground">
+                  <span>{trans.total}:</span>
+                  <span className="text-primary">
+                    {cartTotal.toFixed(2)} {trans.currency}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              className="w-full py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded font-light transition"
+            >
+              {trans.confirmOrder}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}

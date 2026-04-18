@@ -1,0 +1,48 @@
+# Next.js Standard
+/node_modules
+/.next/
+/out/
+/build
+
+# Assets & Config
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# Test Artifacts (Exclude all runtime data)
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+test-results/
+playwright-report/
+
+# Agent & AI Purge (The "Footprints")
+/.*
+claude.md
+
+# Lock Files (Reset as requested)
+*lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Junk, Logs & Debug Artifacts
+*.log
+*.bak
+*.txt
+*.tmp
+*.temp
+.editorconfig
+server_logs.txt
+test_debug_log.txt
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# OS Files
+.DS_Store
+Thumbs.db
