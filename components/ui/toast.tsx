@@ -8,3 +8,4 @@ export type ToastProps = React.ComponentPropsWithoutRef<"div"> & {
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }
+

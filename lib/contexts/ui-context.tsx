@@ -1,14 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
-import { Language } from '@/lib/types';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import type { Product } from '@/lib/types';
 
 interface UIContextType {
-  // Language
-  language: Language;
-  setLanguage: (lang: Language) => void;
-  isRTL: boolean;
   // Theme
   darkMode: boolean;
   setDarkMode: (mode: boolean) => void;
@@ -31,8 +26,53 @@ interface UIContextType {
 const UIContext = createContext<UIContextType | undefined>(undefined);
 
 export function UIProvider({ children }: { children: React.ReactNode }): React.ReactElement {
-  const [language, setLanguage] = useState<Language>('en');
   const [darkMode, setDarkMode] = useState(false);
+
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('halim_darkMode');
+      let isDark = false;
+      
+      if (saved) {
+        isDark = JSON.parse(saved);
+      } else {
+        // Fallback to system preference if no saved setting
+        isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
+      
+      setDarkMode(isDark);
+      // Synchronize DOM with state - the script already handled this for FOUC
+      // but we ensure it matches the state accurately here.
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } catch (e) {
+      console.error('Error loading darkMode from localStorage:', e);
+    }
+  }, []);
+
+  // Save theme and apply class on change
+  // We skip the first run to avoid fighting the initial mount sync
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    if (!mounted) {
+      setMounted(true);
+      return;
+    }
+    try {
+      localStorage.setItem('halim_darkMode', JSON.stringify(darkMode));
+      if (darkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } catch (e) {
+      console.error('Error saving darkMode to localStorage:', e);
+    }
+  }, [darkMode, mounted]);
 
   // Modal state
   const [showCart, setShowCart] = useState(false);
@@ -41,7 +81,6 @@ export function UIProvider({ children }: { children: React.ReactNode }): React.R
   const [showRating, setShowRating] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  const isRTL = language === 'ar';
 
   const openCart = useCallback(() => setShowCart(true), []);
   const closeCart = useCallback(() => setShowCart(false), []);
@@ -60,9 +99,6 @@ export function UIProvider({ children }: { children: React.ReactNode }): React.R
 
   const value = useMemo<UIContextType>(
     () => ({
-      language,
-      setLanguage,
-      isRTL,
       darkMode,
       setDarkMode,
       showCart,
@@ -80,8 +116,6 @@ export function UIProvider({ children }: { children: React.ReactNode }): React.R
       closeRating,
     }),
     [
-      language,
-      isRTL,
       darkMode,
       showCart,
       openCart,
@@ -109,3 +143,4 @@ export function useUI(): UIContextType {
   }
   return context;
 }
+

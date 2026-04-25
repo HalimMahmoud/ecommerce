@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import { AuthShell } from '@/components/auth/ui/auth-form';
+import { AuthShell } from '@/components/features/auth/ui/auth-form';
 
 export const metadata: Metadata = {
   title: 'Account',
@@ -10,3 +10,4 @@ export const metadata: Metadata = {
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return <AuthShell>{children}</AuthShell>;
 }
+

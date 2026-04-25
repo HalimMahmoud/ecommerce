@@ -84,9 +84,15 @@ export function isJwtExpired(token: string): boolean {
  */
 export async function getValidStrapiJwt(): Promise<string | null> {
   const jwt = await getStrapiJwt();
+  // 1. Use valid JWT if present
   if (jwt && !isJwtExpired(jwt)) return jwt;
 
-  const result = await runSingleFlightRefresh();
+  const refreshToken = await getStrapiRefreshToken();
+  // 2. If no refresh token exists, user is logged out - fail fast
+  if (!refreshToken) return null;
+
+  // 3. Trigger deduplicated refresh if we have a token
+  const result = await runSingleFlightRefresh(refreshToken);
   return result?.jwt ?? null;
 }
 
@@ -133,7 +139,6 @@ async function performTokenRefresh(
   if (!refreshToken) {
     try {
       refreshToken = await getStrapiRefreshToken();
-      console.log(`[Session] Refreshing using cookie token: ${refreshToken?.slice(0, 10)}...`);
     } catch {
       // cookies() failed likely in middleware, or simply missing
       return null;
@@ -141,6 +146,8 @@ async function performTokenRefresh(
   }
 
   if (!refreshToken) return null;
+
+  console.log(`[Session] Refreshing using cookie token: ${refreshToken.slice(0, 10)}...`);
 
   try {
     let lastError = null;

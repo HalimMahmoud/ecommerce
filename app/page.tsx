@@ -1,20 +1,18 @@
 import { Suspense } from 'react';
-import HeroSection from '@/components/hero-section';
-import FeaturesSection from '@/components/features-section';
-import ProductFilters from '@/components/product-filters';
-import ProductGrid from '@/components/product-grid';
-import { SAMPLE_PRODUCTS } from '@/lib/products-data';
+import HeroSection from '@/components/features/products/hero-section';
+import FeaturesSection from '@/components/features/products/features-section';
+import FiltersWrapper from '@/components/features/products/filters-wrapper';
+import GridWrapper from '@/components/features/products/grid-wrapper';
+import { ProductGridSkeleton, FiltersSkeleton } from '@/components/features/products/product-skeleton';
+import { searchParamsCache } from '@/lib/search-params';
 
-/** Derive categories the same way the API route does */
-function getCategories(): string[] {
-  return ['all', ...new Set(SAMPLE_PRODUCTS.map(p => p.category))];
+interface HomeProps {
+  searchParams: Promise<any>;
 }
 
-export default function Home() {
-  // Server-side data — no useEffect, no client fetch needed
-  const products = SAMPLE_PRODUCTS;
-  const categories = getCategories();
-
+export default async function Home({ searchParams }: HomeProps) {
+  const params = searchParamsCache.parse(await searchParams);
+  
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       {/* Hero Section */}
@@ -28,15 +26,22 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar Filters */}
           <aside className="lg:col-span-1">
-            <Suspense fallback={<div className="h-64 bg-muted rounded-lg animate-pulse" />}>
-              <ProductFilters categories={categories} />
+            <Suspense fallback={<FiltersSkeleton />}>
+              <FiltersWrapper />
             </Suspense>
           </aside>
 
           {/* Products Grid */}
           <div className="lg:col-span-3">
-            <Suspense fallback={<div className="h-96 bg-muted rounded-lg animate-pulse" />}>
-              <ProductGrid products={products} />
+            <Suspense fallback={<ProductGridSkeleton />}>
+              <GridWrapper params={{
+                search: params.search ?? null,
+                category: params.category ?? null,
+                sort: params.sort ?? null,
+                minPrice: params.minPrice ?? null,
+                maxPrice: params.maxPrice ?? null,
+                rating: params.rating ?? null,
+              }} />
             </Suspense>
           </div>
         </div>
@@ -44,3 +49,4 @@ export default function Home() {
     </div>
   );
 }
+

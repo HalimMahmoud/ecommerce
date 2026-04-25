@@ -15,13 +15,25 @@ const PROTECTED_ROUTES = ['/auth/change-password'];
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // 1. Extract session credentials from cookies
+  // 1. Extract credentials and locale from cookies
   const jwt = request.cookies.get(STRAPI_JWT_COOKIE)?.value;
   const refreshToken = request.cookies.get(STRAPI_REFRESH_COOKIE)?.value;
   const remember = request.cookies.get(STRAPI_REMEMBER_COOKIE)?.value === '1';
+  const nextLocale = request.cookies.get('NEXT_LOCALE')?.value;
 
   let currentJwt = jwt;
   let rotatedRefreshToken: string | undefined;
+  let detectedLocale = nextLocale;
+
+  // 1b. Locale Detection (if not set in cookie)
+  if (!detectedLocale) {
+    const acceptLanguage = request.headers.get('accept-language');
+    if (acceptLanguage?.toLowerCase().includes('ar')) {
+      detectedLocale = 'ar';
+    } else {
+      detectedLocale = 'en'; // Default to English as per user request
+    }
+  }
 
   // 2. Token Lifetime Management (Silent Refresh)
   // If the JWT is missing or literally expired, we attempt to rotate it using the refresh token.
@@ -76,6 +88,15 @@ export async function proxy(request: NextRequest) {
     if (rotatedRefreshToken && rotatedRefreshToken !== refreshToken) {
       response.cookies.set(STRAPI_REFRESH_COOKIE, rotatedRefreshToken, cookieOptions);
     }
+  }
+
+  // 5. Persist Locale
+  if (detectedLocale && detectedLocale !== nextLocale) {
+    response.cookies.set('NEXT_LOCALE', detectedLocale, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+      sameSite: 'lax',
+    });
   }
 
   return response;

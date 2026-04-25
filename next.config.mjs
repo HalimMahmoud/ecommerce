@@ -1,20 +1,33 @@
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin('./lib/i18n.ts');
+
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  cacheComponents: true,
   images: {
+    unoptimized: true,
     remotePatterns: [
+
       {
         protocol: 'https',
         hostname: 'images.unsplash.com',
       },
       {
-        // Strapi media uploads
+        // Strapi media uploads (localhost)
         protocol: 'http',
         hostname: 'localhost',
         port: '1337',
       },
+      {
+        // Strapi media uploads (IP)
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '1337',
+      },
+
     ],
   },
 }
 
-export default nextConfig
+export default withNextIntl(nextConfig)

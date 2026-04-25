@@ -1,104 +1,146 @@
-import type { Product } from '@/lib/types';
+import type { Product, StrapiProduct, StrapiCollectionResponse } from '@/lib/types';
+import strapi from './strapi';
+import { strapiBaseUrl } from './strapi/strapi-base-url';
 
-export type { Product };
+/**
+ * Utility to resolve Strapi media URLs.
+ * Handles both relative paths from Strapi and absolute external URLs.
+ */
+function resolveUrl(url: string | undefined): string {
+  if (!url) return '/placeholder.svg'; // Local fallback
 
-export const SAMPLE_PRODUCTS: Product[] = [
-  {
-    id: 1,
-    nameAr: 'سماعات لاسلكية',
-    nameEn: 'Wireless Headphones',
-    price: 299,
-    category: 'electronics',
-    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500',
-    stock: 15,
-    rating: 0,
-    reviews: 0,
-    userRatings: [],
-    description: 'Comfortable wireless headphones with long battery life.',
-  },
-  {
-    id: 2,
-    nameAr: 'ساعة ذكية',
-    nameEn: 'Smart Watch',
-    price: 599,
-    category: 'electronics',
-    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500',
-    stock: 8,
-    rating: 0,
-    reviews: 0,
-    userRatings: [],
-    description: 'Stylish smart watch with fitness tracking and notifications.',
-  },
-  {
-    id: 3,
-    nameAr: 'حقيبة جلدية',
-    nameEn: 'Leather Bag',
-    price: 449,
-    category: 'accessories',
-    image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=500',
-    stock: 12,
-    rating: 0,
-    reviews: 0,
-    userRatings: [],
-  },
-  {
-    id: 4,
-    nameAr: 'نظارات شمسية',
-    nameEn: 'Sunglasses',
-    price: 199,
-    category: 'accessories',
-    image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=500',
-    stock: 20,
-    rating: 0,
-    reviews: 0,
-    userRatings: [],
-  },
-  {
-    id: 5,
-    nameAr: 'مكبر صوت بلوتوث',
-    nameEn: 'Bluetooth Speaker',
-    price: 349,
-    category: 'electronics',
-    image: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=500',
-    stock: 10,
-    rating: 0,
-    reviews: 0,
-    userRatings: [],
-  },
-  {
-    id: 6,
-    nameAr: 'حقيبة رياضية',
-    nameEn: 'Sports Backpack',
-    price: 279,
-    category: 'fitness',
-    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500',
-    stock: 18,
-    rating: 0,
-    reviews: 0,
-    userRatings: [],
-  },
-  {
-    id: 7,
-    nameAr: 'مصباح LED ذكي',
-    nameEn: 'Smart LED Lamp',
-    price: 159,
-    category: 'home',
-    image: 'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=500',
-    stock: 25,
-    rating: 0,
-    reviews: 0,
-    userRatings: [],
-  },
-  {
-    id: 8,
-    nameAr: 'زجاجة مياه رياضية',
-    nameEn: 'Sports Water Bottle',
-    price: 89,
-    category: 'fitness',
-    image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500',
-    stock: 30,
-    rating: 0,
-    reviews: 0,
-    userRatings: [],
-  },
-];
+  if (url.startsWith('http')) return url;
+  return `${strapiBaseUrl()}${url}`;
+}
+
+/**
+ * Maps a Strapi v5 product object to our local Product type.
+ * Ensures strict type safety and provides robust fallbacks.
+ */
+function mapStrapiProduct(data: StrapiProduct): Product {
+  // Strapi v5 image handling: might be an array or a single object depending on populate
+  const imageUrl = Array.isArray(data.image) 
+    ? data.image[0]?.url 
+    : (data.image as any)?.url;
+
+  return {
+    id: data.id,
+    documentId: data.documentId,
+    slug: data.slug,
+    name: data.name || 'Untitled Product',
+    price: data.price || 0,
+    description: data.description || '',
+    category: (data as any).category?.name || 'uncategorized',
+    image: resolveUrl(imageUrl),
+    stock: data.stock || 0,
+    rating: data.rating || 0,
+    reviews: data.reviews || 0,
+    userRatings: data.userRatings || [],
+  };
+}
+
+/**
+ * Fetches all products from Strapi.
+ * Supports filtering by category, search, price range, rating, and sorting.
+ */
+export async function getProducts(options?: { 
+  category?: string | null; 
+  search?: string | null;
+  sort?: string | null;
+  minPrice?: number | null;
+  maxPrice?: number | null;
+  rating?: number | null;
+  locale?: string;
+}): Promise<Product[]> {
+  try {
+    const params: Record<string, any> = {
+      populate: '*',
+      locale: options?.locale || 'en',
+    };
+
+    // 1. Basic Filters
+    if (options?.category && options.category !== 'all') {
+      params['filters[category][name][$eq]'] = options.category;
+    }
+
+    if (options?.search) {
+      params['filters[name][$containsi]'] = options.search;
+    }
+
+    if (options?.minPrice != null) {
+      params['filters[price][$gte]'] = options.minPrice;
+    }
+
+    if (options?.maxPrice != null) {
+      params['filters[price][$lte]'] = options.maxPrice;
+    }
+
+    if (options?.rating != null && options.rating > 0) {
+      params['filters[rating][$gte]'] = options.rating;
+    }
+
+    // 2. Sorting
+    // Map internal sort keys to Strapi sort syntax (e.g. price:asc)
+    if (options?.sort) {
+      const sortMap: Record<string, string> = {
+        priceLowHigh: 'price:asc',
+        priceHighLow: 'price:desc',
+        name: 'name:asc',
+        featured: 'updatedAt:desc', // Featured = Recently Updated
+      };
+      params['sort'] = sortMap[options.sort] || options.sort;
+    }
+
+    const response = await strapi.get<StrapiCollectionResponse<StrapiProduct>>('/api/products', { 
+      params,
+      requiresAuth: false 
+    });
+
+    return (response.data.data || []).map(mapStrapiProduct);
+  } catch (error) {
+    console.error('Error fetching products from Strapi:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetches a single product by its slug.
+ */
+export async function getProductBySlug(slug: string, locale: string = 'en'): Promise<Product | null> {
+  try {
+    const response = await strapi.get<StrapiCollectionResponse<StrapiProduct>>('/api/products', {
+      params: { 
+        'filters[slug][$eq]': slug,
+        populate: '*', 
+        locale 
+      },
+      requiresAuth: false
+    });
+
+    const productData = response.data.data[0];
+    if (!productData) return null;
+    return mapStrapiProduct(productData);
+  } catch (error) {
+    console.error(`Error fetching product with slug ${slug} from Strapi:`, error);
+    return null;
+  }
+}
+
+/**
+ * Fetches active categories from Strapi.
+ */
+export async function getCategories(locale: string = 'en'): Promise<string[]> {
+  try {
+    const response = await strapi.get<StrapiCollectionResponse<{ name: string }>>('/api/categories', {
+      params: { locale },
+      requiresAuth: false
+    });
+
+    const categories = (response.data.data || []).map(cat => cat.name);
+    return ['all', ...categories];
+  } catch (error) {
+    console.error('Error fetching categories from Strapi:', error);
+    return ['all'];
+  }
+}
+

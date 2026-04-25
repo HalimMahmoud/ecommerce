@@ -40,9 +40,11 @@ test.describe('Authentication Token Resilience (Silent Refresh)', () => {
 
     // 2. Simulate Natural Expiration
     // We leave the refresh token but DELETE the JWT.
-    await context.addCookies([
-      { name: 'strapi_jwt', value: '', url: origin, expires: 0 }
-    ]);
+    await test.step('Simulate JWT Expiration (Cookie Deletion)', async () => {
+      await context.addCookies([
+        { name: 'strapi_jwt', value: '', url: origin, expires: 0 }
+      ]);
+    });
  
     // 3. Navigate to a Public Route (Login)
     // The proxy (proxy.ts) should detect the missing JWT, perform a silent refresh,
@@ -83,9 +85,11 @@ test.describe('Authentication Token Resilience (Silent Refresh)', () => {
     await page.waitForTimeout(2000);
 
     // 2. Simulate Expiration
-    await context.addCookies([
-      { name: 'strapi_jwt', value: '', url: origin, expires: 0 }
-    ]);
+    await test.step('Simulate JWT Expiration (Cookie Deletion)', async () => {
+      await context.addCookies([
+        { name: 'strapi_jwt', value: '', url: origin, expires: 0 }
+      ]);
+    });
 
     /**
      * 3. Trigger Concurrent Requests

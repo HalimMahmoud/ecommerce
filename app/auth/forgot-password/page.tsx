@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import ForgotPasswordForm from '@/components/auth/forgot-password-form';
+import ForgotPasswordForm from '@/components/features/auth/forgot-password-form';
 
 export const metadata: Metadata = {
   title: 'Forgot password',
@@ -8,3 +8,4 @@ export const metadata: Metadata = {
 export default function ForgotPasswordPage() {
   return <ForgotPasswordForm />;
 }
+

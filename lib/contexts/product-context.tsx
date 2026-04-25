@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { Product } from '@/lib/types';
 
 interface ProductContextType {
@@ -15,6 +15,27 @@ export function ProductProvider({ children }: { children: React.ReactNode }): Re
   const [ratedProducts, setRatedProducts] = useState<
     Record<number, { userRatings: number[]; rating: number; reviews: number }>
   >({});
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('halim_ratings');
+      if (saved) {
+        setRatedProducts(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Failed to load ratings from localStorage:', error);
+    }
+  }, []);
+
+  // Save to localStorage on change
+  useEffect(() => {
+    try {
+      localStorage.setItem('halim_ratings', JSON.stringify(ratedProducts));
+    } catch (error) {
+      console.error('Failed to save ratings to localStorage:', error);
+    }
+  }, [ratedProducts]);
 
   const rateProduct = useCallback((productId: number, rating: number, currentProduct: Product) => {
     setRatedProducts(prev => {
@@ -51,3 +72,4 @@ export function useProducts(): ProductContextType {
   }
   return context;
 }
+

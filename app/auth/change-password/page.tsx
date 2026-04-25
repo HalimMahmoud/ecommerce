@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import ChangePasswordForm from '@/components/auth/change-password-form';
+import ChangePasswordForm from '@/components/features/auth/change-password-form';
 
 export const metadata: Metadata = {
   title: 'Change password',
@@ -8,3 +8,4 @@ export const metadata: Metadata = {
 export default function ChangePasswordPage() {
   return <ChangePasswordForm />;
 }
+

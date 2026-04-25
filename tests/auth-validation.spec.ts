@@ -51,7 +51,7 @@ test.describe('Authentication Validation Errors', () => {
     await page.fill('#login-password', 'WrongPassword123!');
     await page.click('button[type="submit"]');
 
-    // This message can come from Strapi or our local rate limiter
-    await expect(page.locator('text=/Invalid identifier or password|Authentication failed|Too many login attempts/').first()).toBeVisible();
+    // This message can come from Strapi or our local rate limiter (and may be localized)
+    await expect(page.locator('text=/Invalid identifier or password|Authentication failed|Too many login attempts|Invalid credentials|Too many unsuccessful sign-in attempts/').first()).toBeVisible();
   });
 });
