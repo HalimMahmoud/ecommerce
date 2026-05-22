@@ -8,6 +8,7 @@ import WishlistModal from '@/components/features/wishlist/wishlist-modal';
 import CheckoutModal from '@/components/features/checkout/checkout-modal';
 import RatingModal from '@/components/features/products/rating-modal';
 import { useUI } from '@/lib/store-context';
+import { Toaster } from '@/components/ui/sonner';
 
 export default function SiteShell({ children }: { children: React.ReactNode }) {
   const {
@@ -36,6 +37,7 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
         isOpen={showRating}
         onClose={closeRating}
       />
+      <Toaster />
     </>
   );
 }

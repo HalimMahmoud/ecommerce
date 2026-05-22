@@ -5,8 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ShoppingCart, Heart, Minus, Plus, ChevronLeft, Share2, ShieldCheck, Truck } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
-import { useCart, useWishlist, useProducts, useUI } from '@/lib/store-context';
-import { toast } from 'sonner';
+import { useWishlist, useProducts, useUI } from '@/lib/store-context';
+import { useProductActions } from '@/lib/hooks';
 import StarRating from './star-rating';
 import ProductCard from './product-card';
 import type { Product } from '@/lib/types';
@@ -20,7 +20,6 @@ export default function ProductPage({ id, products }: ProductPageProps) {
   const t = useTranslations();
   const locale = useLocale();
   const isRTL = locale === 'ar';
-  const { addToCart, cart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { ratedProducts } = useProducts();
   const { openRating } = useUI();
@@ -50,25 +49,12 @@ export default function ProductPage({ id, products }: ProductPageProps) {
     .filter(p => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
 
-  const currentItem = cart.find(i => i.id === product.id);
-  const existingQty = currentItem?.quantity || 0;
-  const remainingStock = Math.max(0, product.stock - existingQty);
-
+  const { remainingStock, handleAddToCart: baseAddToCart } = useProductActions(product);
+  
   const handleAddToCart = () => {
-    if (quantity > remainingStock) {
-      if (remainingStock > 0) {
-        addToCart(product, remainingStock);
-        toast.warning(t('cartLimitReached'), {
-          description: `${t('added')} ${remainingStock} ${t('items')} (${t('maxStock')} ${product.stock})`
-        });
-      } else {
-        toast.error(t('outOfStock'));
-      }
-    } else {
-      addToCart(product, quantity);
-      toast.success(t('addedToCart'));
+    if (baseAddToCart(quantity)) {
+      setQuantity(1);
     }
-    setQuantity(1);
   };
 
   return (

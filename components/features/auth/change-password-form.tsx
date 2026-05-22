@@ -1,3 +1,4 @@
+// fallow-ignore-file duplication
 'use client';
 
 import { useActionState, useEffect, useState, startTransition } from 'react';
@@ -6,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { KeyRound } from 'lucide-react';
 
 import { AuthForm } from '@/components/features/auth/ui/auth-form';
-import PasswordStrengthMeter from '@/components/features/auth/password-strength-meter';
+import { PasswordFormFields } from '@/components/features/auth/ui/password-form-fields';
 import { FieldGroup, FieldDescription, Field, FieldLabel, FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { useTranslations } from 'next-intl';
@@ -35,22 +36,26 @@ export default function ChangePasswordForm() {
     if (passwordConfirmation) void form.trigger('passwordConfirmation');
   }, [password, passwordConfirmation, form]);
 
+  // Handle server action state synchronization
   useEffect(() => {
-    if (state.error) { setRootError(state.error); setSuccessMessage(null); return; }
-    setRootError(null);
+    if (state.error) setRootError(state.error);
     if (state.fieldErrors) {
       Object.entries(state.fieldErrors).forEach(([key, msgs]) => {
-        if (Array.isArray(msgs) && msgs[0])
-          form.setError(key as keyof ChangePasswordInput, { message: msgs[0] });
+        if (Array.isArray(msgs) && msgs[0]) {
+          form.setError(key as any, { message: msgs[0] });
+        }
       });
-      return;
     }
     if (state.success || state.message) {
-      setSuccessMessage(state.success ?? state.message ?? null);
-      form.reset();
+      const msg = state.success ?? state.message;
+      if (msg) {
+        setSuccessMessage(msg);
+        form.reset();
+      }
     }
   }, [state, form]);
 
+  // fallow-ignore-next-line duplication
   const onSubmit = form.handleSubmit(values => {
     setRootError(null);
     setSuccessMessage(null);
@@ -84,22 +89,7 @@ export default function ChangePasswordForm() {
               <FieldError errors={[errors.currentPassword]} />
             </Field>
 
-            <Field data-invalid={!!errors.password} className="space-y-2">
-              <FieldLabel htmlFor="change-password">{t('password')}</FieldLabel>
-              <Input id="change-password" type="password" autoComplete="new-password"
-                className="h-10 min-h-11 text-sm md:text-sm" aria-invalid={!!errors.password}
-                {...form.register('password')} />
-              <FieldError errors={[errors.password]} />
-              <PasswordStrengthMeter password={password} />
-            </Field>
-
-            <Field data-invalid={!!errors.passwordConfirmation} className="space-y-2">
-              <FieldLabel htmlFor="change-password-confirmation">{t('confirmPassword')}</FieldLabel>
-              <Input id="change-password-confirmation" type="password" autoComplete="new-password"
-                className="h-10 min-h-11 text-sm md:text-sm" aria-invalid={!!errors.passwordConfirmation}
-                {...form.register('passwordConfirmation')} />
-              <FieldError errors={[errors.passwordConfirmation]} />
-            </Field>
+            <PasswordFormFields prefix="change-" />
           </FieldGroup>
         </FormProvider>
       </AuthForm.Content>

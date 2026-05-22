@@ -2,7 +2,7 @@ export type AuthState = {
   error: string | null;
   success: string | null;
   message: string | null;
-  fieldErrors: Record<string, string[]> | null;
+  fieldErrors: Record<string, string[] | undefined> | null;
   rateLimited: boolean;
   retryAfter: number | null;
 };

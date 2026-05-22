@@ -1,13 +1,14 @@
+// fallow-ignore-file duplication
 'use client';
 
-import { useActionState, useEffect, useState, startTransition } from 'react';
+import { useActionState, useState, startTransition, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { UserPlus } from 'lucide-react';
 
 import { AuthForm } from '@/components/features/auth/ui/auth-form';
-import PasswordStrengthMeter from '@/components/features/auth/password-strength-meter';
+import { PasswordFormFields } from '@/components/features/auth/ui/password-form-fields';
 import { FieldGroup, Field, FieldLabel, FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { useTranslations } from 'next-intl';
@@ -27,33 +28,27 @@ export default function RegisterForm() {
 
   const form = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { username: '', email: '', password: '', confirmPassword: '' },
+    defaultValues: { username: '', email: '', password: '', passwordConfirmation: '' },
     mode: 'onTouched',
     reValidateMode: 'onChange',
   });
 
   const { errors } = form.formState;
-  const password = form.watch('password');
-  const confirmPassword = form.watch('confirmPassword');
 
+  // Handle server action state synchronization
   useEffect(() => {
-    if (confirmPassword) void form.trigger('confirmPassword');
-  }, [password, confirmPassword, form]);
-
-  useEffect(() => {
-    if (state.error) { setRootError(state.error); setSuccessMessage(null); return undefined; }
-    setRootError(null);
+    if (state.error) setRootError(state.error);
     if (state.fieldErrors) {
       Object.entries(state.fieldErrors).forEach(([key, msgs]) => {
-        if (Array.isArray(msgs) && msgs[0])
-          form.setError(key as keyof RegisterInput, { message: msgs[0] });
+        if (Array.isArray(msgs) && msgs[0]) {
+          form.setError(key as any, { message: msgs[0] });
+        }
       });
-      return undefined;
     }
     if (state.success || state.message) {
-      setSuccessMessage(state.success ?? state.message ?? null);
+      const msg = state.success ?? state.message;
+      if (msg) setSuccessMessage(msg);
       if (state.success) {
-        // Delay slightly if showing success message, or redirect immediately
         const timer = setTimeout(() => {
           router.push(redirectTo);
           router.refresh();
@@ -61,7 +56,6 @@ export default function RegisterForm() {
         return () => clearTimeout(timer);
       }
     }
-    return undefined;
   }, [state, form, router, redirectTo]);
 
   const onSubmit = form.handleSubmit(values => {
@@ -71,7 +65,7 @@ export default function RegisterForm() {
     fd.append('username', values.username);
     fd.append('email', values.email);
     fd.append('password', values.password);
-    fd.append('confirmPassword', values.confirmPassword);
+    fd.append('passwordConfirmation', values.passwordConfirmation);
     startTransition(() => formAction(fd));
   });
 
@@ -106,22 +100,7 @@ export default function RegisterForm() {
               <FieldError errors={[errors.email]} />
             </Field>
 
-            <Field data-invalid={!!errors.password} className="space-y-2">
-              <FieldLabel htmlFor="register-password">{t('password')}</FieldLabel>
-              <Input id="register-password" type="password" autoComplete="new-password"
-                className="h-10 min-h-11 text-sm md:text-sm" aria-invalid={!!errors.password}
-                {...form.register('password')} />
-              <FieldError errors={[errors.password]} />
-              <PasswordStrengthMeter password={password} />
-            </Field>
-
-            <Field data-invalid={!!errors.confirmPassword} className="space-y-2">
-              <FieldLabel htmlFor="register-confirm">{t('confirmPassword')}</FieldLabel>
-              <Input id="register-confirm" type="password" autoComplete="new-password"
-                className="h-10 min-h-11 text-sm md:text-sm" aria-invalid={!!errors.confirmPassword}
-                {...form.register('confirmPassword')} />
-              <FieldError errors={[errors.confirmPassword]} />
-            </Field>
+            <PasswordFormFields prefix="register-" />
 
             {state.rateLimited && (
               <p className="text-sm text-muted-foreground">

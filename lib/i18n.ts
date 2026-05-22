@@ -1,15 +1,20 @@
 import { getRequestConfig } from 'next-intl/server';
 import { cookies } from 'next/headers';
 
-export default getRequestConfig(async () => {
-  // Locale detection strategy:
-  // 1. Check cookies for NEXT_LOCALE (set by proxy.ts)
-  // 2. Default to 'en'
+export default getRequestConfig(async ({ locale }) => {
   const cookieStore = await cookies();
-  const locale = cookieStore.get('NEXT_LOCALE')?.value || 'en';
+  const cookieLocale = cookieStore.get('NEXT_LOCALE')?.value;
+  
+  // Use 'en' as a fallback if the locale is not provided or not supported
+  const supportedLocales = ['en', 'ar'];
+  const activeLocale = (locale && supportedLocales.includes(locale)) 
+    ? locale 
+    : (cookieLocale && supportedLocales.includes(cookieLocale)) 
+      ? cookieLocale 
+      : 'en';
 
   return {
-    locale,
-    messages: (await import(`./translations/${locale}.json`)).default,
+    locale: activeLocale,
+    messages: (await import(`./translations/${activeLocale}.json`)).default,
   };
 });

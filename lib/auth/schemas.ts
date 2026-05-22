@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-/** Password strength result returned by checkPasswordStrength and the internal validator */
-export interface PasswordStrengthResult {
+/** Password strength result returned by checkPasswordStrength */
+interface PasswordStrengthResult {
   score: number;
   label: string;
   color: string;
@@ -50,7 +50,7 @@ function passwordStrength(password: string): { valid: boolean; score: number; me
  * Enhanced password schema with strength validation
  * Exported so it can be reused across multiple auth schemas.
  */
-export const strongPasswordSchema = z
+const strongPasswordSchema = z
   .string()
   .min(8, 'Password must be at least 8 characters')
   .refine(
@@ -70,49 +70,51 @@ export const loginSchema = z.object({
   remember: z.boolean().optional().default(false),
 });
 
-export const registerSchema = z
-  .object({
-    username: z
-      .string()
-      .min(3, 'Username must be at least 3 characters')
-      .max(50, 'Username is too long')
-      .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
-    email: z.string().min(1, 'Email is required').email('Enter a valid email'),
-    password: strongPasswordSchema,
-    confirmPassword: z.string().min(1, 'Confirm your password'),
-  })
-  .refine(data => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  });
+/**
+ * Reusable password and confirmation fields for schemas.
+ */
+const passwordConfirmationFields = {
+  password: strongPasswordSchema,
+  passwordConfirmation: z.string().min(1, 'Confirm your password'),
+};
+
+/**
+ * Reusable refinement for matching passwords.
+ */
+interface PasswordMatching {
+  password?: string;
+  passwordConfirmation?: string;
+}
+const passwordMatchRefinementFn = (data: PasswordMatching) => data.password === data.passwordConfirmation;
+const passwordMatchRefinementOptions = {
+  message: 'Passwords do not match',
+  path: ['passwordConfirmation'],
+};
+
+export const registerSchema = z.object({
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(50, 'Username is too long')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+  email: z.string().min(1, 'Email is required').email('Enter a valid email'),
+  ...passwordConfirmationFields,
+}).refine(passwordMatchRefinementFn, passwordMatchRefinementOptions);
 
 export const forgotPasswordSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email'),
 });
 
-export const resetPasswordSchema = z
-  .object({
-    code: z.string().min(1, 'Reset code is required'),
-    password: strongPasswordSchema,
-    passwordConfirmation: z.string().min(1, 'Confirm your password'),
-  })
-  .refine(data => data.password === data.passwordConfirmation, {
-    message: 'Passwords do not match',
-    path: ['passwordConfirmation'],
-  });
+export const resetPasswordSchema = z.object({
+  code: z.string().min(1, 'Reset code is required'),
+  ...passwordConfirmationFields,
+}).refine(passwordMatchRefinementFn, passwordMatchRefinementOptions);
 
-export const changePasswordSchema = z
-  .object({
-    currentPassword: z.string().min(1, 'Current password is required'),
-    password: strongPasswordSchema,
-    passwordConfirmation: z.string().min(1, 'Confirm your password'),
-  })
-  .refine(data => data.password === data.passwordConfirmation, {
-    message: 'Passwords do not match',
-    path: ['passwordConfirmation'],
-  });
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  ...passwordConfirmationFields,
+}).refine(passwordMatchRefinementFn, passwordMatchRefinementOptions);
 
-export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

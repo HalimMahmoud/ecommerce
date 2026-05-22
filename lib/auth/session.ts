@@ -40,19 +40,19 @@ export async function clearStrapiSession() {
 }
 
 /** Raw JWT string from the cookie jar, or null if absent. */
-export async function getStrapiJwt(): Promise<string | null> {
+async function getStrapiJwt(): Promise<string | null> {
   const jar = await cookies();
   return jar.get(STRAPI_JWT_COOKIE)?.value ?? null;
 }
 
 /** Raw refresh token from the cookie jar, or null if absent. */
-export async function getStrapiRefreshToken(): Promise<string | null> {
+async function getStrapiRefreshToken(): Promise<string | null> {
   const jar = await cookies();
   return jar.get(STRAPI_REFRESH_COOKIE)?.value ?? null;
 }
 
 /** Whether the user chose "remember me" so token rotation preserves the longer lifetime. */
-export async function getRememberPreference(): Promise<boolean> {
+async function getRememberPreference(): Promise<boolean> {
   const jar = await cookies();
   return jar.get(STRAPI_REMEMBER_COOKIE)?.value === '1';
 }
@@ -96,12 +96,6 @@ export async function getValidStrapiJwt(): Promise<string | null> {
   return result?.jwt ?? null;
 }
 
-/** True when either JWT or refresh token exists — used by middleware for route guards. */
-export async function hasValidSession(): Promise<boolean> {
-  const jwt = await getStrapiJwt();
-  const refreshToken = await getStrapiRefreshToken();
-  return !!(jwt || refreshToken);
-}
 
 // In-flight refresh promise — shared across concurrent callers to avoid duplicate refresh requests.
 let refreshPromise: Promise<{ jwt: string; refreshToken?: string } | null> | null = null;
@@ -130,50 +124,73 @@ export async function runSingleFlightRefresh(
  * Writes the rotated tokens back to cookies on success unless tokens were provided (Middleware).
  * Clears the session on failure so stale cookies don't linger.
  */
+/** Helper to safely retrieve the refresh token from cookies or arguments. */
+async function getTargetRefreshToken(provided?: string): Promise<string | null> {
+  if (provided) return provided;
+  try {
+    return await getStrapiRefreshToken();
+  } catch {
+    // cookies() failed likely in middleware
+    return null;
+  }
+}
+
+/** Helper to perform the actual refresh fetch with a retry mechanism for transient errors (502). */
+async function fetchRefreshResponse(refreshToken: string): Promise<Response | null> {
+  const isProd = process.env.NODE_ENV === 'production';
+  const maxAttempts = isProd ? 3 : 2;
+  const timeoutMs = isProd ? 10000 : 3000;
+
+  let response = null;
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      console.log(`[Session] Fetching Strapi refresh (attempt ${i + 1})`);
+      response = await fetch(`${strapiBaseUrl()}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      console.log(`[Session] Response status: ${response.status}`);
+      if (response.ok || response.status !== 502) return response;
+    } catch (err) {
+      console.error(`[Session] Fetch error (attempt ${i + 1}):`, err);
+      if (i === maxAttempts - 1) throw err;
+      await new Promise(r => setTimeout(r, 300));
+    }
+  }
+  return response;
+}
+
+/** Helper to update session cookies if we are in a server context. */
+async function updateSessionState(
+  jwt: string,
+  refreshToken: string,
+  providedRemember?: boolean
+) {
+  const remember = providedRemember ?? await getRememberPreference();
+  await setStrapiSession(jwt, refreshToken, { remember });
+}
+
+/**
+ * Exchange the refresh token for a new JWT (and possibly a new refresh token).
+ * Writes the rotated tokens back to cookies on success unless tokens were provided (Middleware).
+ * Clears the session on failure so stale cookies don't linger.
+ */
 async function performTokenRefresh(
   providedRefreshToken?: string,
   providedRemember?: boolean
 ): Promise<{ jwt: string; refreshToken?: string } | null> {
-  let refreshToken = providedRefreshToken || null;
-  
-  if (!refreshToken) {
-    try {
-      refreshToken = await getStrapiRefreshToken();
-    } catch {
-      // cookies() failed likely in middleware, or simply missing
-      return null;
-    }
-  }
-
+  const refreshToken = await getTargetRefreshToken(providedRefreshToken);
   if (!refreshToken) return null;
 
-  console.log(`[Session] Refreshing using cookie token: ${refreshToken.slice(0, 10)}...`);
+  console.log(`[Session] Refreshing using token: ${refreshToken.slice(0, 10)}...`);
 
   try {
-    let lastError = null;
-    let response = null;
-    
-    for (let i = 0; i < 3; i++) {
-      try {
-        console.log(`[Session] Fetching Strapi refresh at ${strapiBaseUrl()}/api/auth/refresh`);
-        response = await fetch(`${strapiBaseUrl()}/api/auth/refresh`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refreshToken }),
-          signal: AbortSignal.timeout(10000),
-        });
-        console.log(`[Session] Strapi response status: ${response.status}`);
-        if (response.ok || response.status !== 502) break;
-      } catch (err) {
-        console.error(`[Session] Fetch error (attempt ${i+1}):`, err);
-        lastError = err;
-        await new Promise(r => setTimeout(r, 500));
-      }
-    }
+    const response = await fetchRefreshResponse(refreshToken);
 
     if (!response || !response.ok) {
-      console.error('Refresh failed after retries:', lastError || response?.statusText);
-      // Only clear session if we are in server context (non-middleware)
+      console.error('Refresh failed:', response?.statusText);
       if (!providedRefreshToken) {
         try { await clearStrapiSession(); } catch {}
       }
@@ -183,14 +200,16 @@ async function performTokenRefresh(
     const data = await response.json();
     if (!data.jwt) return null;
 
-    // If tokens were NOT provided, we are in a server context where we should write cookies.
+    const newRefreshToken = data.refreshToken ?? refreshToken;
+
+    // In server context (non-middleware), update the cookies
     if (!providedRefreshToken) {
-      const remember = providedRemember ?? await getRememberPreference();
-      await setStrapiSession(data.jwt, data.refreshToken ?? refreshToken, { remember });
+      await updateSessionState(data.jwt, newRefreshToken, providedRemember);
     }
 
-    return { jwt: data.jwt, refreshToken: data.refreshToken ?? refreshToken };
-  } catch {
+    return { jwt: data.jwt, refreshToken: newRefreshToken };
+  } catch (err) {
+    console.error('[Session] Critical refresh error:', err);
     if (!providedRefreshToken) {
       try { await clearStrapiSession(); } catch {}
     }

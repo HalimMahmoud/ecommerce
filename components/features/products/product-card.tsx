@@ -1,10 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import Image from 'next/image';
 import { ShoppingCart, Heart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCart, useWishlist, useProducts } from '@/lib/store-context';
-import { toast } from 'sonner';
+import { useWishlist, useProducts } from '@/lib/store-context';
+import { useProductActions } from '@/lib/hooks';
 import StarRating from './star-rating';
 import type { Product } from '@/lib/types';
 
@@ -15,44 +16,29 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, onRateClick }: ProductCardProps) {
   const t = useTranslations();
-  const { addToCart, cart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { ratedProducts } = useProducts();
   const productName = product.name;
-
 
   // Merge optimistic local rating
   const localRating = ratedProducts[product.id];
   const displayRating = localRating ? localRating.rating : product.rating;
   const displayReviews = localRating ? localRating.reviews : product.reviews;
 
-  const currentItem = cart.find(i => i.id === product.id);
-  const existingQty = currentItem?.quantity || 0;
-  const remainingStock = Math.max(0, product.stock - existingQty);
-
-  const handleAddToCart = () => {
-    if (remainingStock <= 0) {
-      toast.error(t('cartLimitReached'), {
-        description: `${t('maxStock')} ${product.stock}`
-      });
-    } else {
-      addToCart(product, 1);
-      toast.success(t('addedToCart'));
-    }
-  };
+  const { remainingStock, handleAddToCart } = useProductActions(product);
 
   return (
     <div className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-lg transition">
       {/* Image Container */}
       <div className="relative h-48 overflow-hidden bg-muted">
-        <a href={`/product/${product.slug}`} className="block absolute inset-0 z-0">
+        <Link href={`/product/${product.slug}`} className="block absolute inset-0 z-0">
           <Image
             src={product.image || '/placeholder.svg'}
             alt={productName}
             fill
             className="object-cover hover:scale-105 transition-transform duration-300"
           />
-        </a>
+        </Link>
         {/* Wishlist Button */}
         <button
           onClick={() => toggleWishlist(product)}
@@ -73,9 +59,9 @@ export default function ProductCard({ product, onRateClick }: ProductCardProps) 
       {/* Content */}
       <div className="p-4">
         <h3 className="font-light text-sm md:text-base mb-2 line-clamp-2 text-card-foreground">
-          <a href={`/product/${product.slug}`} className="hover:underline z-10 relative">
+          <Link href={`/product/${product.slug}`} className="hover:underline z-10 relative">
             {productName}
-          </a>
+          </Link>
         </h3>
 
         {/* Rating */}
@@ -120,7 +106,7 @@ export default function ProductCard({ product, onRateClick }: ProductCardProps) 
 
         {/* Add to Cart Button */}
         <button
-          onClick={handleAddToCart}
+          onClick={() => handleAddToCart()}
           disabled={product.stock === 0 || remainingStock === 0}
           className={`w-full py-2 flex items-center justify-center gap-2 rounded font-light text-sm transition ${
             product.stock === 0 || remainingStock === 0

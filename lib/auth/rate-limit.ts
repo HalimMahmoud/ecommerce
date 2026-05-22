@@ -23,7 +23,7 @@ setInterval(
   5 * 60 * 1000
 );
 
-export interface RateLimitConfig {
+interface RateLimitConfig {
   windowMs: number; // Time window in milliseconds
   maxRequests: number; // Max requests per window
 }
@@ -36,9 +36,9 @@ const AUTH_RATE_LIMITS: Record<string, RateLimitConfig> = {
   refresh: { windowMs: 60 * 1000, maxRequests: 10 }, // 10 refreshes per minute
 };
 
-export type RateLimitAction = keyof typeof AUTH_RATE_LIMITS;
+type RateLimitAction = keyof typeof AUTH_RATE_LIMITS;
 
-export interface RateLimitResult {
+interface RateLimitResult {
   success: boolean;
   remaining: number;
   resetAt: number;

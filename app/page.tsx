@@ -7,7 +7,7 @@ import { ProductGridSkeleton, FiltersSkeleton } from '@/components/features/prod
 import { searchParamsCache } from '@/lib/search-params';
 
 interface HomeProps {
-  searchParams: Promise<any>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function Home({ searchParams }: HomeProps) {

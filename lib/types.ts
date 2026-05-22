@@ -18,36 +18,6 @@ export interface CartItem extends Product {
   quantity: number;
 }
 
-export interface CheckoutData {
-  fullName: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  postalCode: string;
-  paymentMethod: 'cash' | 'card';
-}
-
-export type Language = 'en' | 'ar';
-
-/** Generic API response wrapper used by Next.js Route Handlers */
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
-
-/** Strapi v5 error response shape for typed error parsing */
-export interface StrapiErrorResponse {
-  error: {
-    status: number;
-    name: string;
-    message: string;
-    details?: {
-      errors?: Array<{ path: string[]; message: string; name: string }>;
-    };
-  };
-}
 
 /** Raw Strapi Product shape from API */
 export interface StrapiProduct {
@@ -56,7 +26,7 @@ export interface StrapiProduct {
   slug: string;
   name: string;
   price: number;
-  category: string;
+  category: string | { name: string };
   stock: number;
   rating: number;
   reviews: number;
@@ -70,7 +40,15 @@ export interface StrapiProduct {
       medium?: { url: string };
       large?: { url: string };
     };
-  };
+  } | Array<{
+    url: string;
+    formats?: {
+      thumbnail?: { url: string };
+      small?: { url: string };
+      medium?: { url: string };
+      large?: { url: string };
+    };
+  }>;
 }
 
 /** Raw Strapi Collection response */

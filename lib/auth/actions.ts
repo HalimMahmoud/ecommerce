@@ -85,8 +85,8 @@ export async function loginAction(
     await setStrapiSession(responseData.jwt, responseData.refreshToken, {
       remember: validated.data.remember,
     });
-  } catch (error: any) {
-    if (error?.digest?.includes('NEXT_REDIRECT')) throw error;
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'digest' in error && error.digest === 'NEXT_REDIRECT') throw error;
     return toAuthState({
       error: getStrapiError(error),
       fieldErrors: getStrapiFieldErrors(error) ?? null,
@@ -116,7 +116,7 @@ export async function registerAction(
     username: data.get('username') as string,
     email: data.get('email') as string,
     password: data.get('password') as string,
-    confirmPassword: data.get('confirmPassword') as string,
+    passwordConfirmation: data.get('passwordConfirmation') as string,
   };
 
   const validated = registerSchema.safeParse(rawData);
@@ -140,8 +140,8 @@ export async function registerAction(
     }
 
     await setStrapiSession(responseData.jwt, responseData.refreshToken);
-  } catch (error: any) {
-    if (error?.digest?.includes('NEXT_REDIRECT')) throw error;
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'digest' in error && error.digest === 'NEXT_REDIRECT') throw error;
     return toAuthState({
       error: getStrapiError(error),
       fieldErrors: getStrapiFieldErrors(error) ?? null,

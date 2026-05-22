@@ -15,7 +15,7 @@ const parseAsZod = <T>(schema: z.ZodSchema<T>) => createParser({
 });
 
 // 1. Define the base Zod schema for your filters.
-export const filtersSchema = z.object({
+const filtersSchema = z.object({
   search: z.string().default(""),
   category: z.string().default("all"),
   sort: z.string().default("featured"),
@@ -35,15 +35,7 @@ export const searchParamsSchema = {
   rating: parseAsZod(filtersSchema.shape.rating),
 };
 
-export const SORT_OPTIONS = [
-  { value: 'featured', label: 'featured' },
-  { value: 'priceLowHigh', label: 'priceLowHigh', strapi: 'price:asc' },
-  { value: 'priceHighLow', label: 'priceHighLow', strapi: 'price:desc' },
-  { value: 'name', label: 'name', strapi: 'name:asc' },
-] as const;
 
-export type SortKey = typeof SORT_OPTIONS[number]['value'];
-export type Filters = z.infer<typeof filtersSchema>;
 
 // Universal Cache (Server Components use this to parse searchParams)
 export const searchParamsCache = createSearchParamsCache(searchParamsSchema);

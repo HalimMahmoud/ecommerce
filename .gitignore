@@ -46,3 +46,4 @@ test_debug_log.txt
 # OS Files
 .DS_Store
 Thumbs.db
+.fallow/

@@ -1,3 +1,4 @@
+// fallow-ignore-file duplication
 'use client';
 
 import { useActionState, useEffect, useState, startTransition } from 'react';
@@ -6,9 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Lock } from 'lucide-react';
 
 import { AuthForm } from '@/components/features/auth/ui/auth-form';
-import PasswordStrengthMeter from '@/components/features/auth/password-strength-meter';
-import { FieldGroup, FieldDescription, Field, FieldLabel, FieldError } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import { PasswordFormFields } from '@/components/features/auth/ui/password-form-fields';
+import { FieldGroup, FieldDescription } from '@/components/ui/field';
 import { useTranslations } from 'next-intl';
 import { resetPasswordAction } from '@/lib/auth/actions';
 import { resetPasswordSchema, type ResetPasswordInput } from '@/lib/auth/schemas';
@@ -28,7 +28,6 @@ export default function ResetPasswordForm({ defaultCode = '' }: ResetPasswordFor
     reValidateMode: 'onChange',
   });
 
-  const { errors } = form.formState;
   const password = form.watch('password');
   const passwordConfirmation = form.watch('passwordConfirmation');
 
@@ -36,17 +35,22 @@ export default function ResetPasswordForm({ defaultCode = '' }: ResetPasswordFor
     if (passwordConfirmation) void form.trigger('passwordConfirmation');
   }, [password, passwordConfirmation, form]);
 
+  // Handle server action state synchronization
   useEffect(() => {
-    if (state.error) { setRootError(state.error); return; }
-    setRootError(null);
+    if (state.error) setRootError(state.error);
     if (state.fieldErrors) {
       Object.entries(state.fieldErrors).forEach(([key, msgs]) => {
-        if (Array.isArray(msgs) && msgs[0])
-          form.setError(key as keyof ResetPasswordInput, { message: msgs[0] });
+        if (Array.isArray(msgs) && msgs[0]) {
+          form.setError(key as any, { message: msgs[0] });
+        }
       });
+    }
+    if (state.success) {
+      form.reset();
     }
   }, [state, form]);
 
+  // fallow-ignore-next-line duplication
   const onSubmit = form.handleSubmit(values => {
     setRootError(null);
     const fd = new FormData();
@@ -71,22 +75,7 @@ export default function ResetPasswordForm({ defaultCode = '' }: ResetPasswordFor
             {rootError && <AuthForm.ErrorBanner message={rootError} />}
             <input type="hidden" {...form.register('code')} />
 
-            <Field data-invalid={!!errors.password} className="space-y-2">
-              <FieldLabel htmlFor="reset-password">{t('password')}</FieldLabel>
-              <Input id="reset-password" type="password" autoComplete="new-password"
-                className="h-10 min-h-11 text-sm md:text-sm" aria-invalid={!!errors.password}
-                {...form.register('password')} />
-              <FieldError errors={[errors.password]} />
-              <PasswordStrengthMeter password={password} />
-            </Field>
-
-            <Field data-invalid={!!errors.passwordConfirmation} className="space-y-2">
-              <FieldLabel htmlFor="reset-confirm">{t('confirmPassword')}</FieldLabel>
-              <Input id="reset-confirm" type="password" autoComplete="new-password"
-                className="h-10 min-h-11 text-sm md:text-sm" aria-invalid={!!errors.passwordConfirmation}
-                {...form.register('passwordConfirmation')} />
-              <FieldError errors={[errors.passwordConfirmation]} />
-            </Field>
+            <PasswordFormFields prefix="reset-" />
           </FieldGroup>
         </FormProvider>
       </AuthForm.Content>

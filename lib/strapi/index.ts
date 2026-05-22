@@ -4,18 +4,35 @@ import { strapiBaseUrl } from './strapi-base-url';
 
 // Extend Axios config interfaces with our custom properties (single declaration)
 declare module 'axios' {
-  export interface AxiosRequestConfig {
+  interface AxiosRequestConfig {
     errorMsg?: string;
     successMsg?: string;
     requiresAuth?: boolean;
     _retry?: boolean;
   }
-  export interface InternalAxiosRequestConfig {
+  interface InternalAxiosRequestConfig {
     errorMsg?: string;
     successMsg?: string;
     requiresAuth?: boolean;
     _retry?: boolean;
   }
+}
+
+interface StrapiErrorDetail {
+  path?: string[];
+  message?: string;
+  name?: string;
+}
+
+interface StrapiErrorResponse {
+  error?: {
+    status?: number;
+    name?: string;
+    message?: string;
+    details?: {
+      errors?: StrapiErrorDetail[];
+    };
+  };
 }
 
 /**
@@ -27,7 +44,7 @@ export function getStrapiError(error: unknown): string {
     return error instanceof Error ? error.message : 'An unexpected error occurred';
   }
 
-  const axiosError = error as AxiosError<any>;
+  const axiosError = error as AxiosError<StrapiErrorResponse>;
   const strapiError = axiosError.response?.data?.error;
 
   if (!strapiError) {
@@ -40,7 +57,7 @@ export function getStrapiError(error: unknown): string {
   if (strapiError.details?.errors?.length) {
     // Sometimes details.errors is an array of more specific errors
     const firstError = strapiError.details.errors[0];
-    if (firstError.message) {
+    if (firstError?.message) {
       message = firstError.message;
     }
   }
@@ -55,20 +72,24 @@ export function getStrapiError(error: unknown): string {
 export function getStrapiFieldErrors(error: unknown): Record<string, string[]> | undefined {
   if (!axios.isAxiosError(error)) return undefined;
 
-  const axiosError = error as AxiosError<any>;
+  const axiosError = error as AxiosError<StrapiErrorResponse>;
   const strapiError = axiosError.response?.data?.error;
 
   if (!strapiError || !strapiError.details?.errors) return undefined;
 
   const fieldErrors: Record<string, string[]> = {};
 
-  strapiError.details.errors.forEach((err: any) => {
+  strapiError.details.errors.forEach((err) => {
     if (err.path && err.path.length > 0) {
       const field = err.path[err.path.length - 1];
-      if (!fieldErrors[field]) {
-        fieldErrors[field] = [];
+      if (field) {
+        if (!fieldErrors[field]) {
+          fieldErrors[field] = [];
+        }
+        if (err.message) {
+          fieldErrors[field].push(err.message);
+        }
       }
-      fieldErrors[field].push(err.message);
     }
   });
 

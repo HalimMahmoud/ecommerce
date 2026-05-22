@@ -7,7 +7,6 @@ import DirectionSetter from '@/components/layout/direction';
 import SiteShell from '@/components/layout/site-shell';
 import { Suspense } from 'react';
 import { cn } from '@/lib/utils';
-import DarkModeProvider from '@/components/layout/dark-mode-provider';
 
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';

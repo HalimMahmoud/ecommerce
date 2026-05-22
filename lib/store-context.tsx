@@ -14,8 +14,6 @@ export { useWishlist } from './contexts/wishlist-context';
 export { useUI } from './contexts/ui-context';
 export { useAuth } from './contexts/auth-context';
 
-// Re-export types
-export type { Product, CartItem, CheckoutData, Language } from './types';
 
 /**
  * Composite Store Provider that wraps all context providers.

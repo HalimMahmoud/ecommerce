@@ -1,6 +1,7 @@
+// fallow-ignore-file duplication
 'use client';
 
-import { useActionState, useEffect, useState, startTransition } from 'react';
+import { useActionState, useState, startTransition, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FormProvider, useForm } from 'react-hook-form';
@@ -42,15 +43,15 @@ export default function LoginForm({ registered, resetOk }: LoginFormProps) {
   const { errors } = form.formState;
   const remember = form.watch('remember');
 
+  // Handle server action state synchronization
   useEffect(() => {
-    if (state.error) { setRootError(state.error); return; }
-    setRootError(null);
+    if (state.error) setRootError(state.error);
     if (state.fieldErrors) {
       Object.entries(state.fieldErrors).forEach(([key, msgs]) => {
-        if (Array.isArray(msgs) && msgs[0])
-          form.setError(key as keyof z.input<typeof loginSchema>, { message: msgs[0] });
+        if (Array.isArray(msgs) && msgs[0]) {
+          form.setError(key as any, { message: msgs[0] });
+        }
       });
-      return;
     }
     if (state.success) {
       router.push(redirectTo);

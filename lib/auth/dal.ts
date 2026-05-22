@@ -5,8 +5,10 @@ import strapi from '@/lib/strapi';
 import { getValidStrapiJwt, runSingleFlightRefresh, clearStrapiSession } from './session';
 import type { AuthUser } from './types';
 
+import axios from 'axios';
+
 /** Normalize Strapi v4 (nested attributes) and v5 (flat) response shapes into AuthUser. */
-function parseUser(raw: any): AuthUser {
+function parseUser(raw: { id: number; username: string; email: string; data?: { id: number; attributes: { username: string; email: string } } }): AuthUser {
   if (raw.data?.attributes) {
     return { id: raw.data.id, username: raw.data.attributes.username, email: raw.data.attributes.email };
   }
@@ -32,8 +34,8 @@ export const getUser = cache(async (): Promise<AuthUser | null> => {
 
   try {
     return await fetchMe();
-  } catch (error: any) {
-    if (error.response?.status === 401) {
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
       // JWT was rejected — attempt one silent refresh before logging the user out.
       const refreshed = await runSingleFlightRefresh();
       if (refreshed?.jwt) {

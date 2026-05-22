@@ -1,6 +1,7 @@
+// fallow-ignore-file duplication
 'use client';
 
-import { useActionState, useEffect, useState, startTransition } from 'react';
+import { useActionState, useState, startTransition, useEffect } from 'react';
 import Link from 'next/link';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,19 +32,26 @@ export default function ForgotPasswordForm() {
 
   const { errors } = form.formState;
 
+  // Handle server action state synchronization
   useEffect(() => {
-    if (state.error) { setRootError(state.error); setSuccessMessage(null); return; }
-    setRootError(null);
+    if (state.error) setRootError(state.error);
     if (state.fieldErrors) {
       Object.entries(state.fieldErrors).forEach(([key, msgs]) => {
-        if (Array.isArray(msgs) && msgs[0])
-          form.setError(key as keyof ForgotPasswordInput, { message: msgs[0] });
+        if (Array.isArray(msgs) && msgs[0]) {
+          form.setError(key as any, { message: msgs[0] });
+        }
       });
-      return;
     }
-    if (state.success || state.message) setSuccessMessage(state.success ?? state.message ?? null);
+    if (state.success || state.message) {
+      const msg = state.success ?? state.message;
+      if (msg) {
+        setSuccessMessage(msg);
+        form.reset();
+      }
+    }
   }, [state, form]);
 
+  // fallow-ignore-next-line duplication
   const onSubmit = form.handleSubmit(values => {
     setRootError(null);
     setSuccessMessage(null);

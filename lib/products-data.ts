@@ -19,9 +19,12 @@ function resolveUrl(url: string | undefined): string {
  */
 function mapStrapiProduct(data: StrapiProduct): Product {
   // Strapi v5 image handling: might be an array or a single object depending on populate
-  const imageUrl = Array.isArray(data.image) 
-    ? data.image[0]?.url 
-    : (data.image as any)?.url;
+  const imageObj = Array.isArray(data.image) ? data.image[0] : data.image;
+  const imageUrl = imageObj?.url;
+
+  const categoryName = typeof data.category === 'string' 
+    ? data.category 
+    : data.category?.name || 'uncategorized';
 
   return {
     id: data.id,
@@ -30,7 +33,7 @@ function mapStrapiProduct(data: StrapiProduct): Product {
     name: data.name || 'Untitled Product',
     price: data.price || 0,
     description: data.description || '',
-    category: (data as any).category?.name || 'uncategorized',
+    category: categoryName,
     image: resolveUrl(imageUrl),
     stock: data.stock || 0,
     rating: data.rating || 0,
@@ -53,7 +56,7 @@ export async function getProducts(options?: {
   locale?: string;
 }): Promise<Product[]> {
   try {
-    const params: Record<string, any> = {
+    const params: Record<string, string | number | boolean | null | undefined> = {
       populate: '*',
       locale: options?.locale || 'en',
     };

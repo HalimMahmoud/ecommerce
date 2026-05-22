@@ -9,6 +9,14 @@ export default function Footer() {
   const quickLinks = [t('contactUs'), t('trackOrder'), t('returnPolicy'), t('shippingInfo')];
   const legal = [t('privacyPolicy'), t('terms'), t('faq')];
 
+  const FooterLink = ({ children }: { children: React.ReactNode }) => (
+    <li>
+      <a href="#" className="text-muted-foreground hover:text-foreground text-sm font-light transition">
+        {children}
+      </a>
+    </li>
+  );
+
   return (
     <footer className="bg-card text-card-foreground">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
@@ -26,14 +34,7 @@ export default function Footer() {
             <h3 className="text-sm font-light mb-4">{t('quickLinks')}</h3>
             <ul className="space-y-2">
               {quickLinks.map((link, idx) => (
-                <li key={idx}>
-                  <a
-                    href="#"
-                    className="text-muted-foreground hover:text-foreground text-sm font-light transition"
-                  >
-                    {link}
-                  </a>
-                </li>
+                <FooterLink key={idx}>{link}</FooterLink>
               ))}
             </ul>
           </div>
@@ -43,14 +44,7 @@ export default function Footer() {
             <h3 className="text-sm font-light mb-4">{t('customerService')}</h3>
             <ul className="space-y-2">
               {legal.map((link, idx) => (
-                <li key={idx}>
-                  <a
-                    href="#"
-                    className="text-muted-foreground hover:text-foreground text-sm font-light transition"
-                  >
-                    {link}
-                  </a>
-                </li>
+                <FooterLink key={idx}>{link}</FooterLink>
               ))}
             </ul>
           </div>

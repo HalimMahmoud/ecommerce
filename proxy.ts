@@ -75,10 +75,10 @@ export async function proxy(request: NextRequest) {
   // 4. Finalize Response (Persist Rotated Tokens)
   // If we successfully rotated the tokens, we must update the cookies in the response.
   if (currentJwt && currentJwt !== jwt) {
-    const cookieOptions: any = {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'lax' as const,
       path: '/',
       ...(remember ? { maxAge: 60 * 60 * 24 * 30 } : {}),
     };

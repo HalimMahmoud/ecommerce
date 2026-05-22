@@ -1,6 +1,6 @@
 
 
-export function ProductCardSkeleton() {
+function ProductCardSkeleton() {
   return (
     <div className="bg-card border border-border rounded-lg overflow-hidden animate-pulse">
       <div className="aspect-square bg-muted" />
